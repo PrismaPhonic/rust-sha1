@@ -174,6 +174,39 @@ impl Sha1 {
         Digest { data: state }
     }
 
+    // Write will compute the hash in place without returning a Digest.
+    pub fn write_with_padding(&mut self, data: &[u8]) {
+        let len = &mut self.len;
+        let state = &mut self.state;
+        self.blocks.input(data, |block| {
+            *len += block.len() as u64;
+            state.process(block);
+        });
+        let mut state = self.state;
+        let bits = (self.len + (self.blocks.len as u64)) * 8;
+        let extra = [(bits >> 56) as u8,
+            (bits >> 48) as u8,
+            (bits >> 40) as u8,
+            (bits >> 32) as u8,
+            (bits >> 24) as u8,
+            (bits >> 16) as u8,
+            (bits >> 8) as u8,
+            (bits >> 0) as u8];
+        let mut last = [0; 128];
+        let blocklen = self.blocks.len as usize;
+        last[..blocklen].clone_from_slice(&self.blocks.block[..blocklen]);
+        last[blocklen] = 0x80;
+
+        if blocklen < 56 {
+            last[56..64].clone_from_slice(&extra);
+            state.process(as_block(&last[0..64]));
+        } else {
+            last[120..128].clone_from_slice(&extra);
+            state.process(as_block(&last[0..64]));
+            state.process(as_block(&last[64..128]));
+        }
+    }
+
     /// Retrieve the digest result as hex string directly.
     ///
     /// (The function is only available if the `std` feature is enabled)
