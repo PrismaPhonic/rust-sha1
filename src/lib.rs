@@ -174,11 +174,12 @@ impl Sha1 {
         Digest { data: state }
     }
 
+    /// Retrieve raw digest results without computing padding.
     pub fn raw_digest(&self) -> Digest {
         Digest { data: self.state }
     }
 
-    // Write will compute the hash in place without returning a Digest.
+    /// Write will compute the hash in place without returning a Digest.
     pub fn write_with_padding(&mut self, data: &[u8]) {
         let len = &mut self.len;
         let state = &mut self.state;
